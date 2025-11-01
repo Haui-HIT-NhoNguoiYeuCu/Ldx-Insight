@@ -1,0 +1,53 @@
+# Tên của quy trình CI/CD
+name: Deploy Docusaurus Docs to GitHub Pages
+
+# Quy trình này sẽ được kích hoạt khi có push lên nhánh 'main'
+on:
+  push:
+    # highlight-start
+    branches: ["main"]
+    # highlight-end
+
+# Cấp quyền cho workflow để ghi vào nhánh gh-pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Các công việc cần thực hiện
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout code từ repo về
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Thiết lập môi trường Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # Phiên bản Node.js
+          cache: "npm"
+          cache-dependency-path: "docs/package-lock.json" # Cache trong thư mục docs
+
+      # 3. Cài đặt các gói phụ thuộc và build trang docs
+      - name: Install and Build
+        run: |
+          npm ci
+          npm run build
+        working-directory: ./docs # Rất quan trọng: chỉ định chạy lệnh trong thư mục 'docs'
+
+      # 4. Tải lên sản phẩm đã build (artifact)
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs/build # Đường dẫn đến thư mục build
+
+      # 5. Deploy lên GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
