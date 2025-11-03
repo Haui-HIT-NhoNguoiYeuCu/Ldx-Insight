@@ -9,6 +9,10 @@ export default defineAppConfig({
       path: '/',
       name: 'Trang chủ',
     },
+    data: {
+      path: '/data',
+      name: 'Dữ liệu',
+    },
     login: {
       path: '/login',
       title: 'Đăng nhập',

@@ -18,5 +18,10 @@ export const useApi = () => {
       },
       getUserById: (id: string | number) => $http<UserResponse>(`/users/${id}`),
     },
+
+    dataset: {
+      list: () => $http<Dataset[]>('/datasets'),
+      detail: (id: string | number) => $http<Dataset>(`/datasets/${id}`),
+    },
   };
 };
