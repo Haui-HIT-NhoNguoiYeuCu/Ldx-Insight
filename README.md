@@ -3,7 +3,8 @@
 **Đội:** Haui.HIT-H2K  
 **Trường:** Trường Công Nghệ Thông Tin và Truyền Thông (SICT) - Đại Học Công Nghiệp Hà Nội
 
-[![Documentation](https://img.shields.io/badge/Documentation-View_Site-blue?style=for-the-badge)](https://[TEN-NHOM-CUA-BAN].github.io/ldx-insight/)
+[![Documentation](https://img.shields.io/badge/Documentation-View_Site-blue?style=for-the-badge)][(https://Haui.HIT.github.io/ldx-insight/)](https://haui-hit-h2k.github.io/Ldx-Insight/
+)
 [![License](https://img.shields.io/badge/License-Apache_2.0-yellow.svg?style=for-the-badge)](./LICENSE)
 
 Bài dự thi **hạng mục Phần mềm nguồn mở 2025** với chủ đề _“Ứng dụng Dữ liệu mở Liên kết hỗ trợ chẩn đoán và đề xuất với mô hình học máy phục vụ Chuyển đổi số Địa phương”_.
@@ -127,8 +128,8 @@ Chúng mình rất hoan nghênh mọi đóng góp!
    - Cập nhật **docs**/**examples** nếu thay đổi hành vi.
 
 ### Báo lỗi & Đề xuất tính năng
-- **Báo lỗi ⚠️:** [Tạo một Bug Report](https://github.com/[TEN-NHOM-CUA-BAN]/ldx-insight/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%5D)  
-- **Yêu cầu tính năng 👩‍💻:** [Đề xuất một tính năng mới](https://github.com/[TEN-NHOM-CUA-BAN]/ldx-insight/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5BFEAT%5D)
+- **Báo lỗi ⚠️:** [Tạo một Bug Report](https://github.com/Haui-HIT-H2K/ldx-insight/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%5D)  
+- **Yêu cầu tính năng 👩‍💻:** [Đề xuất một tính năng mới](https://github.com/Haui-HIT-H2K/ldx-insight/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5BFEAT%5D)
 
 > Nếu bạn muốn đóng góp dài hạn, hãy xem thêm trong `CONTRIBUTING.md` (nếu có) hoặc mở một **Discussion** để trao đổi định hướng.
 
