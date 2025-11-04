@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    # ---------------------------------
-    # ----- PHẦN CI (Build Code) -----
-    # ---------------------------------
     
     - name: 1. Checkout code
       uses: actions/checkout@v4
@@ -25,14 +22,8 @@ jobs:
 
     - name: 3. Build project with Maven
       run: mvn clean package -DskipTests
-      # 💡 SỬA LỖI Ở ĐÂY:
-      # Trỏ đến đúng thư mục con 2 cấp, nơi chứa pom.xml
       working-directory: ./backend/ldx-insight-backend 
         
-    # ---------------------------------
-    # ----- PHẦN CD (Deploy Lên EC2) -----
-    # ---------------------------------
-    
     - name: 4. Copy JAR file to EC2
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -40,24 +31,42 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_PRIVATE_KEY }}
         port: 22
-        # Lấy file JAR từ đúng thư mục 'target'
         source: "backend/ldx-insight-backend/target/ldx-insight-backend-*.jar" 
         target: "/home/${{ secrets.EC2_USERNAME }}/app" 
 
-    - name: 5. Run deploy script on EC2
+    - name: 5. Run deploy script on EC2 (An toàn hơn)
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_PRIVATE_KEY }}
         port: 22
+        # Kịch bản (script) an toàn và chi tiết hơn:
         script: |
-          # 1. Dừng process cũ
-          pkill -f ldx-insight-backend-.*.jar || true
+          echo "Bắt đầu kịch bản deploy..."
+          
+          # 1. Tìm PID của process Java cũ
+          # Dùng dấu ngoặc kép để tránh lỗi ký tự đại diện
+          PID=$(pgrep -f "ldx-insight-backend-.*.jar")
+          
+          if [ -n "$PID" ]
+          then
+            echo "Tìm thấy process cũ, PID: $PID. Đang dừng..."
+            # Dùng kill -9 (SIGKILL) để buộc dừng
+            kill -9 $PID
+            # Chờ 5 giây để đảm bảo cổng 8080 được giải phóng
+            sleep 5 
+            echo "Đã dừng process cũ."
+          else
+            echo "Không tìm thấy process cũ. Bỏ qua bước dừng."
+          fi
           
           # 2. Di chuyển vào thư mục ứng dụng
+          echo "Di chuyển tới /home/${{ secrets.EC2_USERNAME }}/app"
           cd /home/${{ secrets.EC2_USERNAME }}/app
           
           # 3. Khởi động ứng dụng mới
-          # Ứng dụng sẽ tự động đọc các biến từ /etc/environment
+          echo "Khởi động ứng dụng Spring Boot..."
           nohup java -jar ldx-insight-backend-*.jar > app.log 2>&1 &
+          
+          echo "Kịch bản deploy đã hoàn tất."
