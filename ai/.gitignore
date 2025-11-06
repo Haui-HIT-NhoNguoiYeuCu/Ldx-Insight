@@ -1,0 +1,5 @@
+src/openhub_crawler/__pycache__
+src/openhub_crawler/portals/__pycache__
+storage
+
+logs
