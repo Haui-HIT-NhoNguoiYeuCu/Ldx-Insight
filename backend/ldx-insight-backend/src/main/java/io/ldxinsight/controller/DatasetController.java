@@ -58,7 +58,7 @@ public class DatasetController {
     @Operation(summary = "Tạo một Bộ dữ liệu mới (Yêu cầu xác thực)")
     @ApiResponse(responseCode = "201", description = "Tạo thành công")
     @PostMapping
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DatasetDto> createDataset(@Valid @RequestBody CreateDatasetRequest request) {
         DatasetDto createdDataset = datasetService.createDataset(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdDataset);
@@ -77,7 +77,7 @@ public class DatasetController {
     @Operation(summary = "Xóa một Bộ dữ liệu (Yêu cầu xác thực)")
     @ApiResponse(responseCode = "204", description = "Xóa thành công")
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteDataset(@PathVariable String id) {
         datasetService.deleteDataset(id);
         return ResponseEntity.noContent().build();
@@ -108,7 +108,7 @@ public class DatasetController {
             description = "API này công khai, không cần xác thực.",
             security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
     @GetMapping("/categories")
-//    @PreAuthorize("permitAll()") // Cho phép nếu dùng @EnableMethodSecurity
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<String>> getAllCategories() {
         return ResponseEntity.ok(datasetService.getAllCategories());
     }
