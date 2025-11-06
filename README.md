@@ -87,7 +87,7 @@ Nền tảng này sử dụng và tích hợp các công nghệ sau:
 ## 🌐 Các cổng (Port) mặc định
 
 - **Giao diện Frontend (Demo):** http://localhost:3000  
-- **Backend API (Swagger):** [http://35.74.79.150:8080/swagger-ui.html ](http://35.74.79.150:8080/swagger-ui/index.html#/1.%20Dataset%20APIs) 
+- **Backend API (Swagger):** [http://api.haui-hit-h2k.site/swagger-ui.html ](http://api.haui-hit-h2k.site/swagger-ui/index.html#/1.%20Dataset%20APIs) 
 - **ML Service (API):** http://localhost:5000 *(giả định)*  
 - **Trang tài liệu :**https://haui-hit-h2k.github.io/Ldx-Insight/
 
