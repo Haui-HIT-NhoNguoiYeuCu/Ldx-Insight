@@ -2,46 +2,115 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# OpenHub Data Platform
 
-Let's discover **Docusaurus in less than 5 minutes**.
+Giải pháp nguồn mở nhằm thu thập, chuẩn hóa và phân tích dữ liệu mở của các địa phương – hướng tới xây dựng chatbot phân tích chuyển đổi số.
 
-## Getting Started
+## 1. Tổng quan
 
-Get started by **creating a new site**.
+- **Crawler đa nguồn:** Đồng Tháp, TP.HCM (CKAN), Đà Nẵng (CongDuLieu).
+- **Chuẩn hóa & phân loại:** tự động gắn nhãn định dạng, chuyển CSV/XLSX thành JSON records.
+- **Lên lịch dạng agent:** orchestrator điều phối từng connector, hỗ trợ cron bằng APScheduler.
+- **ETL vào MongoDB:** nạp metadata, resource và bản ghi chuẩn hóa lên Mongo Atlas.
+- **Hạ tầng phân tích:** dữ liệu sẵn sàng cho dashboard, API backend và mô hình machine learning.
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+## 2. Tính năng chính
 
-### What you'll need
+1. **Thu thập dữ liệu**
+   - Crawl qua API CKAN, REST tùy chỉnh hoặc HTML scraping.
+   - Bỏ qua file đã tải, chỉ cập nhật resource mới.
+2. **Chuẩn hóa**
+   - Phân loại định dạng (`csv`, `xlsx`, `pdf`, `json`, …).
+   - Tự chuyển CSV/XLSX thành JSON trong `storage/<connector>/normalized`.
+3. **Lên lịch & log**
+   - `scripts/run_agents.py [--schedule-cron "..."]`.
+   - Log chi tiết vào `logs/openhub.log` và `logs/crawl_history.jsonl`.
+4. **ETL MongoDB**
+   - `scripts/load_to_mongo.py --mongo-uri ... --mongo-db ...`.
+   - Collections: `datasets`, `resources`, `records`, `etl_runs`.
+5. **Sẵn sàng cho ML/Dashboard**
+   - Dataset, resource và records đã chuẩn hóa.
+   - Đề xuất dùng Mongo aggregation, Superset/Metabase, FastAPI hoặc mô hình ML dự báo chỉ số.
 
-- [Node.js](https://nodejs.org/en/download/) version 20.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+## 3. Cấu trúc dữ liệu crawled
 
-## Generate a new site
-
-Generate a new Docusaurus site using the **classic template**.
-
-The classic template will automatically be added to your project after you run the command:
-
-```bash
-npm init docusaurus@latest my-website classic
+```text
+storage/
+├─ <connector>/
+│ ├─ metadata/
+│ │ ├─ dataset_pages/page_*.json
+│ │ └─ datasets/<dataset_id>.json
+│ ├─ resources/<format>/<dataset_id>/file.ext
+│ └─ normalized/<dataset_id>/<resource_id>.json # nếu chuẩn hóa được
+logs/
+├─ openhub.log
+└─ crawl_history.jsonl
 ```
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
+## 4. Chuẩn bị môi trường
 
 ```bash
-cd my-website
-npm run start
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
+## 5. Chạy crawler
 
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
+```bash
+python scripts/run_agents.py --connectors dong-thap,hcm,da-nang --storage-root storage
+```
 
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+```bash
+# hoặc đặt lịch hàng ngày 02:00
+python scripts/run_agents.py --connectors hcm --storage-root storage --schedule-cron "0 2 * * *"
+```
+
+## 6. ETL lên MongoDB Atlas
+
+```bash
+python scripts/load_to_mongo.py \
+  --mongo-uri "$MONGO_URI" \
+  --mongo-db "$MONGO_DB" \
+  --storage-root storage
+```
+
+- `datasets`: metadata cấp cao.
+- `resources`: thông tin file.
+- `records`: dữ liệu chuẩn hóa (1 document/row).
+- `etl_runs`: log thời gian, số bản ghi.
+
+## 7. Tech Stack
+
+| Thành phần         | Công nghệ        | Giấy phép                 |
+| ------------------ | ---------------- | ------------------------- |
+| HTTP client        | httpx            | BSD-3-Clause              |
+| Retry              | tenacity         | Apache 2.0                |
+| Data model         | pydantic         | MIT                       |
+| Scheduling         | APScheduler      | MIT                       |
+| Công cụ CLI/Log    | rich             | MIT                       |
+| Chuẩn hóa CSV/XLSX | pandas, openpyxl | BSD-3-Clause / MIT        |
+| ETL Mongo          | pymongo, dotenv  | Apache 2.0 / BSD-3-Clause |
+
+Tất cả đều là nguồn mở.
+
+## 8. Các connector
+
+- `src/openhub_crawler/portals/ckan.py` – `HoChiMinhConnector`
+- `src/openhub_crawler/portals/dongthap.py` – `DongThapConnector`
+- `src/openhub_crawler/portals/danang.py` – `DaNangConnector`
+
+## 9. Kiến trúc agent
+
+- `AgentRegistry`: đăng ký/lookup connector theo slug.
+- `CrawlAgentManager`: điều phối crawl, gắn repository (`storage/<slug>`), trả về thống kê.
+- `scripts/run_agents.py`: CLI + scheduler.
+
+## 10. Roadmap
+
+- Giải captcha/API key để tải dữ liệu thô Đà Nẵng.
+- Crawl incremental theo `updated_time`.
+- Sinh DCAT/JSON-LD, xuất bản endpoint Linked Open Data.
+- Bổ sung data quality check (Great Expectations).
+- Đưa normalized data vào warehouse (Postgres/DuckDB) làm nguồn BI.
+- Xây mô hình ML dự báo chỉ số chuyển đổi số.
