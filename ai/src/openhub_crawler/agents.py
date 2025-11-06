@@ -11,6 +11,7 @@ from .portals.base import CrawlStats, PortalConnector
 from .portals.danang import DaNangConnector
 from .portals.dongthap import DongThapConnector
 from .portals.hcm import HoChiMinhConnector
+from .portals.thanhhoa import ThanhHoaConnector
 from .storage import LocalDataRepository
 
 
@@ -37,6 +38,7 @@ class AgentRegistry:
             "dong-thap": DongThapConnector(),
             "hcm": HoChiMinhConnector(),
             "da-nang": DaNangConnector(),
+            "thanh-hoa": ThanhHoaConnector(),
         }
 
     def get(self, slug: str) -> PortalConnector:
