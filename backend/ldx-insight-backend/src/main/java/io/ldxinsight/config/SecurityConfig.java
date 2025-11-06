@@ -16,7 +16,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-// @EnableMethodSecurity // bật nếu sau này dùng @PreAuthorize
+// @EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
