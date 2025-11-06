@@ -23,6 +23,7 @@ import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.aggregation.GroupOperation;
 import org.springframework.data.mongodb.core.aggregation.MatchOperation;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -123,4 +124,23 @@ public class DatasetServiceImpl implements DatasetService {
         return datasetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dataset not found with id: " + id));
     }
+
+    @Override
+    public List<String> getAllCategories() {
+        // Sử dụng MongoTemplate để thực hiện 1 truy vấn "distinct"
+        // tương đương: db.datasets.distinct("category")
+        List<String> categories = mongoTemplate.query(Dataset.class)
+                .distinct("category")
+                .as(String.class)
+                .all();
+
+        return categories;
+    }
+
+    @Override
+    public Page<DatasetDto> getDatasetsByCategory(String category, Pageable pageable) {
+        Page<Dataset> page = datasetRepository.findByCategoryIgnoreCase(category, pageable);
+        return page.map(datasetMapper::toDto);
+    }
+
 }

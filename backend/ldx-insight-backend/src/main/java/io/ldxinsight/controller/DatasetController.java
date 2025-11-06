@@ -19,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/datasets")
@@ -101,5 +102,29 @@ public class DatasetController {
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(downloadUrl))
                 .build();
+    }
+
+    @Operation(summary = "Lấy danh sách tất cả các 'thư mục' (categories) duy nhất",
+            description = "API này công khai, không cần xác thực.",
+            security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
+    @GetMapping("/categories")
+//    @PreAuthorize("permitAll()") // Cho phép nếu dùng @EnableMethodSecurity
+    public ResponseEntity<List<String>> getAllCategories() {
+        return ResponseEntity.ok(datasetService.getAllCategories());
+    }
+
+    @Operation(summary = "Lấy danh sách dataset CHỈ theo category (API riêng)",
+            description = "API này công khai, không cần xác thực.",
+            security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
+    @GetMapping("/category/{category}") // <-- ĐƯỜNG DẪN MỚI
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Page<DatasetDto>> getDatasetsByCategory(
+            @Parameter(description = "Tên category, ví dụ: 'Y tế'")
+            @PathVariable String category,
+            @Parameter(description = "Phân trang (ví dụ: ?page=0&size=10)")
+            Pageable pageable) {
+
+        Page<DatasetDto> results = datasetService.getDatasetsByCategory(category, pageable);
+        return ResponseEntity.ok(results);
     }
 }
