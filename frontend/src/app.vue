@@ -1,10 +1,13 @@
 <script setup lang="ts">
 const appConfig = useAppConfig();
-
 useHead({ titleTemplate: `%s | ${appConfig.title}` });
+
+const toaster = { position: 'top-right' };
 </script>
 <template>
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
+  <UApp :toaster="toaster">
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </UApp>
 </template>

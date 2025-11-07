@@ -17,6 +17,10 @@ export default defineAppConfig({
       path: '/login',
       title: 'Đăng nhập',
     },
+    register: {
+      path: '/register',
+      title: 'Đăng ký',
+    },
     profile: {
       path: '/users/:id',
       title: 'Trang cá nhân',

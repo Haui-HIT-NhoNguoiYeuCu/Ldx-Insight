@@ -2,6 +2,9 @@
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
 const datasetId = computed(() => route.params.id);
 const isDownloading = ref(false);
 
@@ -21,24 +24,58 @@ await useAsyncData(
 );
 
 async function onDownload() {
+  if (!authStore.loggedIn) {
+    toast.add({
+      title: 'Yêu cầu đăng nhập',
+      description: 'Bạn cần đăng nhập để thực hiện chức năng này.',
+      color: 'orange',
+      icon: 'i-lucide-info',
+    });
+
+    router.push({
+      path: '/login',
+      query: { redirect: route.fullPath },
+    });
+    return;
+  }
+
   if (isDownloading.value) return;
   isDownloading.value = true;
 
   try {
-    const response = await api.dataset.download(datasetId.value as string);
+    // 1. GỌI API (đã sửa)
+    const response = await api.dataset.downloadFile(datasetId.value as string);
 
-    const blob = await response.blob();
+    console.log(response);
 
-    const contentDisposition = response.headers.get('content-disposition');
-    let filename = `dataset-${datasetId.value}.zip`;
+    // 2. SỬA Ở ĐÂY:
+    // Lấy blob trực tiếp từ _data (do ofetch đã xử lý)
+    const blob = (response as any)._data;
+
+    // BỎ DÒNG NÀY:
+    // const blob = await response.blob(); // <-- Gây lỗi "stream already read"
+
+    // 3. Lấy tên file (giữ nguyên)
+    const contentDisposition = (response as any).headers.get(
+      'content-disposition'
+    );
+    let filename = `dataset-${datasetId.value}.txt`;
 
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="?(.+?)"?$/);
+      const filenameMatch = contentDisposition.match(
+        /filename\*=UTF-8''([^;]+)/
+      );
       if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1];
+        filename = decodeURIComponent(filenameMatch[1]);
+      } else {
+        const simpleMatch = contentDisposition.match(/filename="([^"]+)"/);
+        if (simpleMatch && simpleMatch[1]) {
+          filename = simpleMatch[1];
+        }
       }
     }
 
+    // 4. Tạo link (giữ nguyên)
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -48,8 +85,17 @@ async function onDownload() {
 
     a.remove();
     URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Download failed:', error);
+
+    // 5. Ghi nhận lượt tải (giữ nguyên)
+    await api.dataset.download(datasetId.value as string);
+
+    isDownloading.value = false;
+  } catch (error: any) {
+    toast.add({
+      title: 'Tải file thất bại',
+      description: error.message,
+      color: 'red',
+    });
     isDownloading.value = false;
   }
 }

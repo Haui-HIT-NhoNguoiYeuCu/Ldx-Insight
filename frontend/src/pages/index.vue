@@ -1,7 +1,27 @@
 <script setup lang="ts">
+import { Bar } from 'vue-chartjs';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+} from 'chart.js';
+
 const appConfig = useAppConfig();
 useSeoMeta({ titleTemplate: appConfig.title });
 definePageMeta({ layout: 'default' });
+
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+);
 
 const router = useRouter();
 const q = ref('');
@@ -10,7 +30,7 @@ const filters = [
     title: 'Tất cả',
     category: '',
   },
-  { title: 'Văn hoá du lịch', category: 'Văn hoá du lịch' },
+  { title: 'Lao động', category: 'Lao động' },
   { title: 'Giáo dục', category: 'Giáo dục' },
   { title: 'Kinh tế', category: 'Kinh tế' },
 ];
@@ -34,6 +54,76 @@ const { data: topDownloaded, pending: topDownloadedPending } =
 
 const { data: categoryStats, pending: categoryStatsPending } =
   await useAsyncData('categoryStats', () => api.stats.byCategory());
+
+const colorPalette = [
+  '#3B82F6', // blue-500
+  '#EC4899', // pink-500
+  '#10B981', // emerald-500
+  '#F59E0B', // amber-500
+  '#8B5CF6', // violet-500
+  '#EF4444', // red-500
+  '#6366F1', // indigo-500
+  '#06B6D4', // cyan-500
+  '#D946EF', // fuchsia-500
+  '#F97316', // orange-500
+];
+
+const categoryChartData = computed(() => {
+  if (!categoryStats.value) return null;
+
+  const aggregated = new Map<string, number>();
+  for (const item of categoryStats.value) {
+    if (item.category) {
+      const currentCount = aggregated.get(item.category) || 0;
+      aggregated.set(item.category, currentCount + item.count);
+    }
+  }
+
+  const sortedData = [...aggregated.entries()]
+    .sort(([, countA], [, countB]) => countB - countA)
+    .slice(0, 10);
+
+  return {
+    labels: sortedData.map(([categoryName]) => categoryName),
+    datasets: [
+      {
+        label: 'Số lượng',
+        data: sortedData.map(([, count]) => count),
+        backgroundColor: sortedData.map(
+          (item, index) => colorPalette[index % colorPalette.length]
+        ),
+        borderRadius: 4,
+      },
+    ],
+  };
+});
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false, // Cho phép class="h-72" hoạt động
+  plugins: {
+    legend: {
+      display: false, // Ẩn legend
+    },
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: {
+        precision: 0, // Chỉ hiện số nguyên
+      },
+    },
+    x: {
+      ticks: {
+        // Cắt ngắn label nếu quá dài (rất quan trọng)
+        callback(this: any, value: any) {
+          const label = this.getLabelForValue(value);
+          return label.length > 20 ? label.substring(0, 20) + '...' : label;
+        },
+      },
+    },
+  },
+};
 
 const onSearch = () => {
   if (!q.value) return;
@@ -175,19 +265,12 @@ const navigateToCategory = (category: string) => {
           >
             <UIcon name="line-md:loading-loop" class="text-primary size-8" />
           </div>
-          <!-- <BarChart
-            :data="RevenueData"
-            :height="300"
-            :categories="RevenueCategories"
-            :y-axis="['desktop']"
-            :x-num-ticks="6"
-            :radius="4"
-            :y-grid-line="true"
-            :x-formatter="xFormatter"
-            :y-formatter="yFormatter"
-            :legend-position="LegendPosition.TopRight"
-            :hide-legend="false"
-          /> -->
+          <Bar
+            v-if="categoryChartData"
+            :data="categoryChartData"
+            :options="chartOptions"
+            class="h-72"
+          />
         </UCard>
 
         <UCard>
@@ -236,7 +319,7 @@ const navigateToCategory = (category: string) => {
             <li
               v-for="item in topViewed.slice(0, 10)"
               :key="item.id"
-              class="flex items-center justify-between gap-4 border-b pb-2"
+              class="flex items-center justify-between gap-4 border-b border-b-gray-200 pb-2"
             >
               <NuxtLink
                 :to="`/data/${item.id}`"

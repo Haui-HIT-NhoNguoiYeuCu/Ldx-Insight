@@ -6,7 +6,15 @@ export const useApi = () => {
   return {
     auth: {
       login: (body: LoginRequest) =>
-        $http<LoginResponse>('/auth/login', { method: 'POST', body }),
+        $http<AuthResponse>(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          body,
+        }),
+      register: (body: LoginRequest) =>
+        $http<AuthResponse>(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          body,
+        }),
     },
     stats: {
       summary: () => {
@@ -35,14 +43,19 @@ export const useApi = () => {
         $http<DatasetResponse>(`${API_BASE}/datasets`, {
           query: params,
         }),
-      detail: (id: string) => $http<Dataset>(`/datasets/${id}`),
+      detail: (id: string) => $http<Dataset>(`${API_BASE}/datasets/${id}`),
       viewData: (id: string) =>
-        $http(`/datasets/${id}/view`, {
+        $http(`${API_BASE}/datasets/${id}/view`, {
           method: 'POST',
         }),
       download: (id: string) =>
-        $http.raw(`/datasets/${id}/download`, {
+        $http(`${API_BASE}/datasets/${id}/download`, {
           method: 'GET',
+        }),
+      downloadFile: (id: string) =>
+        $http.raw(`${API_BASE}/datasets/${id}/download.csv`, {
+          method: 'GET',
+          responseType: 'blob',
         }),
     },
   };
