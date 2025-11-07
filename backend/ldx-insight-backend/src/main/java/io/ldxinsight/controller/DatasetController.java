@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -46,6 +47,13 @@ public class DatasetController {
     @GetMapping("/{id}")
     public ResponseEntity<DatasetDto> getDatasetById(@PathVariable String id) {
         return ResponseEntity.ok(datasetService.getDatasetById(id));
+    }
+
+    @Operation(summary = "Lấy tất cả các category từ cơ sở dữ liệu")
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getAllCategories() {
+        List<String> categories = datasetService.getAllCategories();
+        return ResponseEntity.ok(categories);
     }
 
     @Operation(summary = "Lấy danh sách dataset CHỈ theo category (API riêng)")
