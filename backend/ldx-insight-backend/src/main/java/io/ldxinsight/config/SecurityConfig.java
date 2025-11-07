@@ -3,7 +3,7 @@ package io.ldxinsight.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpMethod; // <-- Thêm import này
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -33,6 +33,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
+                        
                         // 1. Cho phép Swagger
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
                         // 2. Cho phép API Đăng ký / Đăng nhập / Đăng xuất
@@ -43,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/datasets/category/{category}").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/datasets/{id}/view").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/datasets/{id}/download").permitAll()
-                        .requestMatchers("/api/v1/stats/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/stats/**").permitAll() 
                         // 4. Tất cả các API còn lại đều phải xác thực
                         .anyRequest().authenticated()
                 )
@@ -56,16 +58,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOriginPatterns(List.of("*"));  // cho mọi domain/port với credentials
-        cfg.setAllowCredentials(true);               // nếu client gửi cookie
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));        
-        cfg.setExposedHeaders(List.of("Authorization","Content-Disposition","X-Total-Count"));
+        cfg.setAllowedOrigins(List.of(*));
+        
+        cfg.setAllowCredentials(true);
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        cfg.setAllowedHeaders(List.of("*"));
+        cfg.setExposedHeaders(List.of("Authorization", "Content-Disposition", "X-Total-Count"));
         cfg.setMaxAge(3600L);
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
+        source.registerCorsConfiguration("/**", cfg); 
         return source;
     }
-
-
 }
