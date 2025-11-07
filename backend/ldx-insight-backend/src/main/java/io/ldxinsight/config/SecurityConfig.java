@@ -19,41 +19,51 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity // hỗ trợ @PreAuthorize trên controller
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+    private final JwtAuthFilter jwtAuthFilter;              // Filter của bạn để đọc JWT (từ cookie hoặc header)
+    private final AuthenticationProvider authenticationProvider; // Provider để validate token & load UserDetails
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
-                        
-                        // 1. Cho phép Swagger
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
-                        
-                        // =================== LỖI 403 LÀ DO THIẾU DÒNG NÀY ===================
-                        // 2. Cho phép API Đăng ký / Đăng nhập / Đăng xuất
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        // =====================================================================
+            // CORS + CSRF
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
 
-                        // 3. Cho phép các API CÔNG KHAI
-                        // (Tôi đã rút gọn 5 dòng datasets của bạn thành 3 dòng cho sạch)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/datasets/{id}/view").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/stats/**").permitAll() 
-                        
-                        // 4. Tất cả các API còn lại đều phải xác thực
-                        .anyRequest().authenticated()
-                )
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            // Stateless session
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // Ủy quyền theo URL
+            .authorizeHttpRequests(auth -> auth
+                // Preflight
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Swagger (public)
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+
+                // Auth APIs (public)
+                .requestMatchers("/api/v1/auth/**").permitAll()
+
+                // Stats (public)
+                .requestMatchers(HttpMethod.GET, "/api/v1/stats/**").permitAll()
+
+                // Dataset: GET public
+                .requestMatchers(HttpMethod.GET, "/api/v1/datasets/**").permitAll()
+
+                // Dataset: increment view (public) — SỬA {id} -> * (ant pattern), hoặc ** nếu cần sâu hơn
+                .requestMatchers(HttpMethod.POST, "/api/v1/datasets/*/view").permitAll()
+                // .requestMatchers(HttpMethod.POST, "/api/v1/datasets/**/view").permitAll() // nếu route có thể lồng sâu
+
+                // Còn lại: cần xác thực (các API ADMIN sẽ bị chặn bởi @PreAuthorize)
+                .anyRequest().authenticated()
+            )
+
+            // AuthN
+            .authenticationProvider(authenticationProvider)
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -61,23 +71,22 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        
-        // ================== SỬA LỖI CORS (KHÔNG DÙNG "*") ==================
+
+        // KHÔNG có dấu "/" cuối cùng
         cfg.setAllowedOrigins(List.of(
-            "https://api.haui-hit-h2k.site/", 
+            "https://api.haui-hit-h2k.site",
             "http://localhost:3000",
             "http://localhost:5173"
         ));
-        // ===================================================================
-        
+
         cfg.setAllowCredentials(true);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*")); 
+        cfg.setAllowedHeaders(List.of("*"));
         cfg.setExposedHeaders(List.of("Authorization", "Content-Disposition", "X-Total-Count"));
         cfg.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg); 
+        source.registerCorsConfiguration("/**", cfg);
         return source;
     }
 }
