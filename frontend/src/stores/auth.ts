@@ -1,6 +1,5 @@
 interface ITokenStore {
   accessToken?: string;
-  refreshToken?: string;
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -8,21 +7,14 @@ export const useAuthStore = defineStore('auth', {
     const appConfig = useAppConfig();
     return {
       accessToken: getCookie(appConfig.cookieKeys.accessToken) || undefined,
-      refreshToken: getCookie(appConfig.cookieKeys.refreshToken) || undefined,
     };
   },
-
   getters: { loggedIn: ({ accessToken }): boolean => !!accessToken },
   actions: {
-    logIn(
-      { accessToken, refreshToken }: LoginResponse['data'],
-      redirect: boolean = true
-    ) {
-      this.accessToken = accessToken;
-      this.refreshToken = refreshToken;
+    logIn(token: string, redirect: boolean = true) {
+      this.accessToken = token;
       const appConfig = useAppConfig();
-      setCookie(appConfig.cookieKeys.accessToken, accessToken);
-      setCookie(appConfig.cookieKeys.refreshToken, refreshToken);
+      setCookie(appConfig.cookieKeys.accessToken, this.accessToken);
       if (redirect)
         navigateTo(
           (useRoute().query.redirect as string) || appConfig.pages.home.path
@@ -31,9 +23,7 @@ export const useAuthStore = defineStore('auth', {
     logOut(options?: { redirect?: string }): void {
       const appConfig = useAppConfig();
       removeCookie(appConfig.cookieKeys.accessToken);
-      removeCookie(appConfig.cookieKeys.refreshToken);
-      this.accessToken = '';
-      this.refreshToken = '';
+      this.accessToken = undefined;
       if (options && options.redirect)
         navigateTo({
           path: appConfig.pages.login.path,

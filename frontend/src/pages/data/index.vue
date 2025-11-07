@@ -3,125 +3,69 @@ const appConfig = useAppConfig();
 useSeoMeta({ titleTemplate: appConfig.pages.data.name });
 definePageMeta({ layout: 'default' });
 
-type Dataset = {
-  id: number;
-  name: string;
-  category: keyof typeof categoryIconNames | 'All' | string;
-  description: string;
-  downloads: number;
-  views: number;
-  updated: string;
-  format: string;
-};
+const route = useRoute();
+const router = useRouter();
+const q = ref<string>((route.query.q as string) || '');
+const page = ref<number>(Number(route.query.page) || 1);
+const pageSize = ref<number>(10);
+const sortBy = ref<'viewCount' | 'downloadCount' | 'updatedAt' | 'createdAt'>(
+  'downloadCount'
+);
+const sortDir = ref<'asc' | 'desc'>('desc');
+const sortParam = computed(() => `${sortBy.value},${sortDir.value}`);
+const selectedCategory = ref((route.query.category as string) || '');
 
-const categoryIconNames = {
-  Agriculture: 'lucide:leaf',
-  Health: 'lucide:heart',
-  Finance: 'lucide:dollar-sign',
-  Education: 'lucide:book-open',
-  Transportation: 'lucide:truck',
-  Environment: 'lucide:leaf',
-} as const;
+const api = useApi();
+const {
+  data: datasetRes,
+  pending: datasetPending,
+  execute: fetchDatasets,
+} = await useAsyncData(
+  'datasets',
+  () =>
+    api.dataset.list({
+      q: q.value || '',
+      category: selectedCategory.value || '',
+      page: page.value - 1,
+      size: pageSize.value,
+      sort: sortParam.value,
+    }),
+  { immediate: false }
+);
 
-const formatColors: Record<string, string> = {
-  CSV: 'bg-blue-100 text-blue-700',
-  JSON: 'bg-orange-100 text-orange-700',
-  Excel: 'bg-green-100 text-green-700',
-  GeoJSON: 'bg-purple-100 text-purple-700',
-  PDF: 'bg-red-100 text-red-700',
-};
+const { data: categoriesRes, execute: fetchCategories } = await useAsyncData(
+  'categories',
+  () => api.dataset.category(),
+  {
+    immediate: false,
+  }
+);
 
-const datasets = ref<Dataset[]>([
-  {
-    id: 1,
-    name: 'Agricultural Production 2024',
-    category: 'Agriculture',
-    description: 'Comprehensive data on crop yields and production statistics',
-    downloads: 1240,
-    views: 5320,
-    updated: '2024-12-15',
-    format: 'CSV, JSON',
-  },
-  {
-    id: 2,
-    name: 'Healthcare Statistics',
-    category: 'Health',
-    description: 'Regional health metrics and hospital performance data',
-    downloads: 892,
-    views: 3210,
-    updated: '2024-12-10',
-    format: 'Excel, CSV',
-  },
-  {
-    id: 3,
-    name: 'Financial Market Data',
-    category: 'Finance',
-    description: 'Stock prices and market indicators for analysis',
-    downloads: 2150,
-    views: 8940,
-    updated: '2024-12-18',
-    format: 'JSON, CSV',
-  },
-  {
-    id: 4,
-    name: 'Education Enrollment',
-    category: 'Education',
-    description: 'Student enrollment and graduation rates by institution',
-    downloads: 654,
-    views: 2890,
-    updated: '2024-12-12',
-    format: 'CSV, Excel',
-  },
-  {
-    id: 5,
-    name: 'Transportation Network',
-    category: 'Transportation',
-    description: 'Traffic patterns and public transportation usage',
-    downloads: 1876,
-    views: 6540,
-    updated: '2024-12-16',
-    format: 'GeoJSON, CSV',
-  },
-  {
-    id: 6,
-    name: 'Environmental Monitoring',
-    category: 'Environment',
-    description: 'Air quality and environmental sensor readings',
-    downloads: 945,
-    views: 4120,
-    updated: '2024-12-14',
-    format: 'JSON, PDF',
-  },
-]);
-
-const categories = [
-  'All',
-  'Agriculture',
-  'Health',
-  'Finance',
-  'Education',
-  'Transportation',
-  'Environment',
-];
-
-const selectedCategory = ref('All');
-const searchTerm = ref('');
-
-const filteredDatasets = computed(() => {
-  const term = searchTerm.value.toLowerCase();
-  return datasets.value.filter(d => {
-    const matchesCategory =
-      selectedCategory.value === 'All' || d.category === selectedCategory.value;
-    const matchesSearch =
-      d.name.toLowerCase().includes(term) ||
-      d.description.toLowerCase().includes(term);
-    return matchesCategory && matchesSearch;
-  });
+onMounted(() => {
+  if (!datasetRes.value) fetchDatasets();
+  if (!categoriesRes.value) fetchCategories();
 });
 
-function formatsOf(formatString: string) {
-  return formatString.split(',').map(f => f.trim());
-}
+watch([q, selectedCategory, page, pageSize, sortParam], () => {
+  fetchDatasets();
+});
+
+const datasets = computed(() => datasetRes.value?.content ?? []);
+const totalPages = computed(() => datasetRes.value?.totalPages ?? 1);
+const totalElements = computed(() => datasetRes.value?.totalElements ?? 0);
+const categories = computed(() => categoriesRes.value?.slice(1));
+
+const onSearch = () => {
+  page.value = 1;
+  fetchDatasets();
+};
+
+const refresh = () => {
+  page.value = 1;
+  q.value = '';
+  fetchDatasets();
+  router.push('/data');
+};
 </script>
 
 <template>
@@ -132,66 +76,73 @@ function formatsOf(formatString: string) {
         class="from-primary via-accent to-secondary text-primary-foreground bg-linear-to-r py-12"
       >
         <div class="mx-auto max-w-7xl px-4 text-white sm:px-6 lg:px-8">
-          <h1 class="mb-4 text-4xl font-bold">Datasets</h1>
+          <h1 class="mb-4 text-4xl font-bold">Dữ liệu</h1>
           <p class="text-lg opacity-90">
-            Explore {{ datasets.length }} datasets across multiple categories
+            Khám phá {{ totalElements }} bộ dữ liệu theo danh mục
           </p>
         </div>
       </section>
 
       <!-- Content -->
       <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <!-- Search -->
+        <div class="mb-8">
+          <h3 class="mb-4 font-bold">Tìm kiếm</h3>
+          <div class="flex gap-4">
+            <div class="relative flex-1">
+              <Icon
+                name="lucide:search"
+                class="text-muted-foreground absolute top-3 left-3 h-4 w-4"
+              />
+              <input
+                v-model="q"
+                type="text"
+                placeholder="Tìm kiếm bộ dữ liệu..."
+                class="border-border focus:ring-primary w-full rounded-lg border py-2 pr-4 pl-10 focus:ring-2 focus:outline-none"
+                @keydown.enter="onSearch"
+              />
+            </div>
+            <UButton class="px-4" @click="onSearch">Tìm kiếm</UButton>
+            <UButton
+              class="px-4"
+              icon="solar:refresh-linear"
+              color="neutral"
+              variant="outline"
+              @click="refresh"
+            />
+          </div>
+        </div>
         <div class="grid grid-cols-1 gap-8 lg:grid-cols-4">
           <!-- Sidebar -->
           <div class="lg:col-span-1">
-            <!-- Search -->
-            <div class="mb-8">
-              <h3 class="mb-4 font-bold">Search</h3>
-              <div class="relative">
-                <Icon
-                  name="lucide:search"
-                  class="text-muted-foreground absolute top-3 left-3 h-4 w-4"
-                />
-                <input
-                  v-model="searchTerm"
-                  type="text"
-                  placeholder="Search datasets..."
-                  class="border-border focus:ring-primary w-full rounded-lg border py-2 pr-4 pl-10 focus:ring-2 focus:outline-none"
-                />
-              </div>
-            </div>
-
             <!-- Categories -->
             <div>
               <h3 class="mb-4 font-bold">Categories</h3>
-              <div class="space-y-2">
+              <div class="space-y-2" v-if="categories">
                 <button
-                  v-for="category in categories"
-                  :key="category"
-                  @click="selectedCategory = category"
+                  @click="selectedCategory = ''"
                   class="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left transition-colors"
                   :class="
-                    selectedCategory === category
+                    selectedCategory === ''
                       ? 'bg-primary text-primary-'
                       : 'bg-gray-100 hover:bg-gray-200'
                   "
                 >
-                  <Icon
-                    v-if="category !== 'All'"
-                    :name="
-                      categoryIconNames[
-                        category as keyof typeof categoryIconNames
-                      ]
-                    "
-                    class="h-4 w-4"
+                  <span>All</span>
+                </button>
+                <div v-for="category in categories" :key="category">
+                  <button
+                    @click="selectedCategory = category"
+                    class="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left transition-colors"
                     :class="
                       selectedCategory === category
-                        ? 'text-primary-foreground'
-                        : 'text-primary'
+                        ? 'bg-primary text-primary-'
+                        : 'bg-gray-100 hover:bg-gray-200'
                     "
-                  />
-                  <span>{{ category }}</span>
-                </button>
+                  >
+                    <span>{{ category }}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -199,54 +150,46 @@ function formatsOf(formatString: string) {
           <!-- Main Content -->
           <div class="lg:col-span-3">
             <div class="space-y-4">
-              <template v-if="filteredDatasets.length > 0">
+              <template v-if="datasets.length > 0">
                 <NuxtLink
-                  v-for="dataset in filteredDatasets"
+                  v-for="dataset in datasets"
                   :key="dataset.id"
                   :to="`/data/${dataset.id}`"
                   class="block"
                 >
                   <div
-                    class="bg-card border-border cursor-pointer rounded-lg border p-6 transition-shadow hover:shadow-lg"
+                    class="bg-card border-border cursor-pointer rounded-lg border bg-white p-6 transition-shadow hover:shadow-lg"
                   >
                     <div class="mb-3 flex items-start justify-between">
                       <div class="flex-1">
                         <div class="mb-2 flex items-center gap-3">
-                          <Icon
-                            v-if="dataset.category !== 'All'"
-                            :name="
-                              categoryIconNames[
-                                dataset.category as keyof typeof categoryIconNames
-                              ]
-                            "
-                            class="text-primary h-5 w-5"
-                          />
-                          <h3 class="text-primary text-xl font-bold">
-                            {{ dataset.name }}
+                          <h3 class="mb-3 text-xl font-bold text-black/70">
+                            {{ dataset.title }}
                           </h3>
                         </div>
-                        <p class="text-muted-foreground mb-3">
-                          {{ dataset.description }}
-                        </p>
                         <div class="flex flex-col gap-3">
-                          <div>
-                            <span
+                          <div v-if="dataset.category">
+                            Danh mục:
+                            <UBadge
                               class="bg-primary/10 text-primary inline-block rounded-full px-3 py-1 text-sm font-medium"
                             >
                               {{ dataset.category }}
-                            </span>
+                            </UBadge>
                           </div>
-                          <div class="flex flex-wrap gap-2">
-                            <span
-                              v-for="f in formatsOf(dataset.format)"
-                              :key="f"
+                          <div
+                            class="flex flex-wrap gap-2"
+                            v-if="dataset.tags && dataset.tags.length > 0"
+                          >
+                            Thẻ:
+                            <UBadge
+                              v-for="tag in dataset.tags"
+                              :key="tag"
                               class="inline-block rounded-full px-3 py-1 text-sm font-medium"
-                              :class="
-                                formatColors[f] || 'bg-gray-100 text-gray-700'
-                              "
+                              color="neutral"
+                              variant="outline"
                             >
-                              {{ f }}
-                            </span>
+                              {{ tag }}
+                            </UBadge>
                           </div>
                         </div>
                       </div>
@@ -258,15 +201,17 @@ function formatsOf(formatString: string) {
                       <div class="text-muted-foreground flex gap-6 text-sm">
                         <div class="flex items-center gap-2">
                           <Icon name="lucide:download" class="h-4 w-4" />
-                          <span>{{ dataset.downloads }} downloads</span>
+                          <span>{{ dataset.downloadCount }} downloads</span>
                         </div>
                         <div class="flex items-center gap-2">
                           <Icon name="lucide:eye" class="h-4 w-4" />
-                          <span>{{ dataset.views }} views</span>
+                          <span>{{ dataset.viewCount }} views</span>
                         </div>
-                        <div>Updated: {{ dataset.updated }}</div>
+                        <div v-if="dataset.updatedAt">
+                          Updated: {{ dataset.updatedAt }}
+                        </div>
                       </div>
-                      <UButton> View Details </UButton>
+                      <UButton> Chi tiết </UButton>
                     </div>
                   </div>
                 </NuxtLink>
@@ -275,11 +220,30 @@ function formatsOf(formatString: string) {
                 <p class="text-muted-foreground text-lg">No datasets found</p>
               </div>
             </div>
+            <div class="mt-6 flex items-center justify-between">
+              <span class="text-muted-foreground text-sm">
+                Tổng: {{ totalElements }} bản ghi • Trang {{ page }} /
+                {{ totalPages }}
+              </span>
+
+              <UPagination
+                v-model="page"
+                :total="totalElements"
+                show-controls
+                show-edges
+              />
+            </div>
           </div>
         </div>
       </div>
-    </main>
 
-    <Footer />
+      <!-- Loading -->
+      <div
+        class="fixed top-9 right-0 bottom-0 left-0 z-50 mt-6 flex items-center justify-center bg-white/60"
+        v-if="datasetPending"
+      >
+        <UIcon name="line-md:loading-loop" class="text-primary size-12" />
+      </div>
+    </main>
   </div>
 </template>

@@ -1,8 +1,7 @@
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
-export type LoginResponse = ApiResponse<{
-  accessToken: string;
-  refreshToken: string;
+export type AuthResponse = ApiResponse<{
+  token: string;
 }>;

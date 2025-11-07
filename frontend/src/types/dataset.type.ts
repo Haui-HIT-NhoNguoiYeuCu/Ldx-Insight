@@ -1,17 +1,31 @@
-// types/dataset.ts
 export type Dataset = {
-  id: number;
-  name: string;
-  category:
-    | 'Agriculture'
-    | 'Health'
-    | 'Finance'
-    | 'Education'
-    | 'Transportation'
-    | 'Environment';
+  id: string;
+  title: string;
   description: string;
-  downloads: number;
-  views: number;
-  updated: string; // ISO date
-  format: string; //VD: "CSV, JSON"
+  source: string;
+  tags: string[];
+  category: string;
+  viewCount: number;
+  downloadCount: number;
+  provider: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DatasetRequestParams = {
+  q?: string;
+  category?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+};
+
+export type DatasetResponse = {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  content: any[];
+  first: boolean;
+  last: boolean;
 };

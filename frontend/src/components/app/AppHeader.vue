@@ -1,3 +1,16 @@
+<script setup lang="ts">
+import { useRoute } from 'vue-router';
+
+const authStore = useAuthStore();
+const { loggedIn } = storeToRefs(authStore);
+const route = useRoute();
+
+const isActive = (path: string) => route.path === path;
+
+const onLogout = () => {
+  authStore.logOut();
+};
+</script>
 <template>
   <nav class="sticky top-0 z-50 border-b border-gray-400 bg-white">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
@@ -37,6 +50,24 @@
             Dữ liệu
           </NuxtLink>
 
+          <UButton
+            v-if="!loggedIn"
+            to="/login"
+            label="Đăng nhập"
+            icon="i-lucide-log-in"
+            color="primary"
+            variant="solid"
+          />
+
+          <UButton
+            v-else
+            label="Đăng xuất"
+            icon="i-lucide-log-out"
+            color="neutral"
+            variant="outline"
+            @click="onLogout"
+          />
+
           <!-- <NuxtLink
             to="/instructions"
             :class="[
@@ -65,11 +96,3 @@
     </div>
   </nav>
 </template>
-
-<script setup lang="ts">
-import { useRoute } from 'vue-router';
-
-const route = useRoute();
-
-const isActive = (path: string) => route.path === path;
-</script>
