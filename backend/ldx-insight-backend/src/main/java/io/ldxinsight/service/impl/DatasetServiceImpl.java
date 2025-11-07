@@ -94,7 +94,20 @@ public class DatasetServiceImpl implements DatasetService {
         if (dataset == null) {
             throw new ResourceNotFoundException("Dataset not found with id: " + id);
         }
-        return dataset.getDataUrl();
+        
+        String dataUrl = dataset.getDataUrl();
+        if (dataUrl == null || dataUrl.trim().isEmpty()) {
+            throw new ResourceNotFoundException("Dataset does not have a download URL");
+        }
+        
+        // Đảm bảo URL là absolute URL (bắt đầu với http:// hoặc https://)
+        String normalizedUrl = dataUrl.trim();
+        if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+            // Nếu là relative URL, có thể cần xử lý khác hoặc throw exception
+            throw new IllegalArgumentException("Invalid download URL: URL must start with http:// or https://");
+        }
+        
+        return normalizedUrl;
     }
 
     @Override
