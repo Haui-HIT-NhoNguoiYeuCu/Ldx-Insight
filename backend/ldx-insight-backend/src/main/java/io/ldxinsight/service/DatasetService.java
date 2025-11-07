@@ -1,8 +1,6 @@
 package io.ldxinsight.service;
 
-import io.ldxinsight.dto.CreateDatasetRequest;
-import io.ldxinsight.dto.DatasetDto;
-import io.ldxinsight.dto.StatSummaryDto;
+import io.ldxinsight.dto.*;
 import io.ldxinsight.model.Dataset;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,4 +23,8 @@ public interface DatasetService {
     List<String> getAllCategories();
 
     Page<DatasetDto> getDatasetsByCategory(String category, Pageable pageable);
+
+    List<CategoryStatisDTO> getCategoryStats();
+    List<DatasetDto> getTopViewedDatasets(int limit);
+    List<DatasetDto> getTopDownloadedDatasets(int limit);
 }

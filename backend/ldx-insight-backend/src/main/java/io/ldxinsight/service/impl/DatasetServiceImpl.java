@@ -1,8 +1,6 @@
 package io.ldxinsight.service.impl;
 
-import io.ldxinsight.dto.CreateDatasetRequest;
-import io.ldxinsight.dto.DatasetDto;
-import io.ldxinsight.dto.StatSummaryDto;
+import io.ldxinsight.dto.*;
 import io.ldxinsight.exception.ResourceNotFoundException;
 import io.ldxinsight.mapper.DatasetMapper;
 import io.ldxinsight.model.Dataset;
@@ -10,18 +8,15 @@ import io.ldxinsight.repository.DatasetRepository;
 import io.ldxinsight.service.DatasetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
-import org.springframework.data.mongodb.core.aggregation.GroupOperation;
-import org.springframework.data.mongodb.core.aggregation.MatchOperation;
 
 import java.util.List;
 import java.util.Map;
@@ -38,7 +33,8 @@ public class DatasetServiceImpl implements DatasetService {
     public Page<DatasetDto> searchDatasets(String keyword, String category, Pageable pageable) {
         Page<Dataset> page;
         if (StringUtils.hasText(keyword)) {
-            page = datasetRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(keyword, keyword, pageable);
+            page = datasetRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
+                    keyword, keyword, pageable);
         } else if (StringUtils.hasText(category)) {
             page = datasetRepository.findByCategoryIgnoreCase(category, pageable);
         } else {
@@ -63,7 +59,6 @@ public class DatasetServiceImpl implements DatasetService {
     @Override
     public DatasetDto updateDataset(String id, CreateDatasetRequest request) {
         Dataset dataset = findDatasetById(id);
-
         datasetMapper.updateFromRequest(request, dataset);
         dataset = datasetRepository.save(dataset);
         return datasetMapper.toDto(dataset);
@@ -79,14 +74,15 @@ public class DatasetServiceImpl implements DatasetService {
 
     @Override
     public void incrementViewCount(String id) {
-        Query query = new Query(Criteria.where("id").is(id));
+        // Với MongoDB, trường id ánh xạ tới _id trong collection
+        Query query = new Query(Criteria.where("_id").is(id));
         Update update = new Update().inc("viewCount", 1);
         mongoTemplate.updateFirst(query, update, Dataset.class);
     }
 
     @Override
     public String getDownloadUrlAndIncrement(String id) {
-        Query query = new Query(Criteria.where("id").is(id));
+        Query query = new Query(Criteria.where("_id").is(id));
         Update update = new Update().inc("downloadCount", 1);
 
         Dataset dataset = mongoTemplate.findAndModify(query, update, Dataset.class);
@@ -94,57 +90,54 @@ public class DatasetServiceImpl implements DatasetService {
         if (dataset == null) {
             throw new ResourceNotFoundException("Dataset not found with id: " + id);
         }
-        
+
         String dataUrl = dataset.getDataUrl();
         if (dataUrl == null || dataUrl.trim().isEmpty()) {
             throw new ResourceNotFoundException("Dataset does not have a download URL");
         }
-        
-        // Đảm bảo URL là absolute URL (bắt đầu với http:// hoặc https://)
+
         String normalizedUrl = dataUrl.trim();
         if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
-            // Nếu là relative URL, có thể cần xử lý khác hoặc throw exception
             throw new IllegalArgumentException("Invalid download URL: URL must start with http:// or https://");
         }
-        
+
         return normalizedUrl;
     }
 
     @Override
-public StatSummaryDto getStatsSummary() {
-    long totalDatasets = datasetRepository.count();
+    public StatSummaryDto getStatsSummary() {
+        long totalDatasets = datasetRepository.count();
 
-    GroupOperation group = Aggregation.group()
-            .sum("viewCount").as("totalViews")
-            .sum("downloadCount").as("totalDownloads");
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.group()
+                        .sum("viewCount").as("totalViews")
+                        .sum("downloadCount").as("totalDownloads")
+        );
 
-    Aggregation aggregation = Aggregation.newAggregation(group);
-    AggregationResults<Map> results = mongoTemplate.aggregate(aggregation, "datasets", Map.class);
+        Map<String, Object> resultMap = mongoTemplate
+                .aggregate(aggregation, "datasets", Map.class)
+                .getUniqueMappedResult();
 
-    long totalViews = 0L;
-    long totalDownloads = 0L;
+        long totalViews = 0L;
+        long totalDownloads = 0L;
 
-    Map<String, Object> resultMap = results.getUniqueMappedResult();
-    if (resultMap != null) {
-        Number views = (Number) resultMap.getOrDefault("totalViews", 0);
-        Number dls   = (Number) resultMap.getOrDefault("totalDownloads", 0);
-        totalViews = views == null ? 0L : views.longValue();
-        totalDownloads = dls == null ? 0L : dls.longValue();
+        if (resultMap != null) {
+            Number views = (Number) resultMap.getOrDefault("totalViews", 0);
+            Number dls = (Number) resultMap.getOrDefault("totalDownloads", 0);
+            totalViews = views == null ? 0L : views.longValue();
+            totalDownloads = dls == null ? 0L : dls.longValue();
+        }
+
+        return new StatSummaryDto(totalDatasets, totalViews, totalDownloads);
     }
-
-    return new StatSummaryDto(totalDatasets, totalViews, totalDownloads);
-}
 
     @Override
     public List<String> getAllCategories() {
-        // Sử dụng MongoTemplate để thực hiện 1 truy vấn "distinct"
-        // tương đương: db.datasets.distinct("category")
-        List<String> categories = mongoTemplate.query(Dataset.class)
+        // db.datasets.distinct("category")
+        return mongoTemplate.query(Dataset.class)
                 .distinct("category")
                 .as(String.class)
                 .all();
-
-        return categories;
     }
 
     @Override
@@ -153,9 +146,27 @@ public StatSummaryDto getStatsSummary() {
         return page.map(datasetMapper::toDto);
     }
 
+    @Override
+    public List<CategoryStatisDTO> getCategoryStats() {
+        return datasetRepository.countDatasetsByCategory();
+    }
+
+    @Override
+    public List<DatasetDto> getTopViewedDatasets(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        Page<Dataset> topViewedPage = datasetRepository.findByOrderByViewCountDesc(pageable);
+        return topViewedPage.map(datasetMapper::toDto).getContent();
+    }
+
+    @Override
+    public List<DatasetDto> getTopDownloadedDatasets(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        Page<Dataset> topDownloadedPage = datasetRepository.findByOrderByDownloadCountDesc(pageable);
+        return topDownloadedPage.map(datasetMapper::toDto).getContent();
+    }
+
     private Dataset findDatasetById(String id) {
         return datasetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dataset not found with id: " + id));
     }
-
 }
