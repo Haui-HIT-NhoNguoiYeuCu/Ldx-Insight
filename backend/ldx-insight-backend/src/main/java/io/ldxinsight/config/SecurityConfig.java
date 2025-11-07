@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,11 +14,11 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -33,24 +32,31 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Cho phép error endpoint
+                        .requestMatchers("/error").permitAll()
+                        
+                        // Cho phép OPTIONS requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
                         
                         // 1. Cho phép Swagger
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
                         
-                        // =================== LỖI 403 LÀ DO THIẾU DÒNG NÀY ===================
                         // 2. Cho phép API Đăng ký / Đăng nhập / Đăng xuất
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        // =====================================================================
 
-                        // 3. Cho phép các API CÔNG KHAI
-                        // (Tôi đã rút gọn 5 dòng datasets của bạn thành 3 dòng cho sạch)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/datasets/{id}/view").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/stats/**").permitAll() 
+                        // 3. Cho phép các API CÔNG KHAI (tất cả methods)
+                        .requestMatchers("/api/v1/datasets/**").permitAll()
+                        .requestMatchers("/api/v1/stats/**").permitAll() 
                         
                         // 4. Tất cả các API còn lại đều phải xác thực
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Access denied\"}");
+                        })
                 )
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

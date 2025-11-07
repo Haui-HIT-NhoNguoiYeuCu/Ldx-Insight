@@ -98,32 +98,29 @@ public class DatasetServiceImpl implements DatasetService {
     }
 
     @Override
-    public StatSummaryDto getStatsSummary() {
-        long totalDatasets = datasetRepository.count();
+public StatSummaryDto getStatsSummary() {
+    long totalDatasets = datasetRepository.count();
 
-        GroupOperation group = Aggregation.group()
-                .sum("viewCount").as("totalViews")
-                .sum("downloadCount").as("totalDownloads");
+    GroupOperation group = Aggregation.group()
+            .sum("viewCount").as("totalViews")
+            .sum("downloadCount").as("totalDownloads");
 
-        Aggregation aggregation = Aggregation.newAggregation(group);
-        AggregationResults<Map> results = mongoTemplate.aggregate(aggregation, "datasets", Map.class);
+    Aggregation aggregation = Aggregation.newAggregation(group);
+    AggregationResults<Map> results = mongoTemplate.aggregate(aggregation, "datasets", Map.class);
 
-        long totalViews = 0;
-        long totalDownloads = 0;
+    long totalViews = 0L;
+    long totalDownloads = 0L;
 
-        Map<String, Long> resultMap = results.getUniqueMappedResult();
-        if (resultMap != null) {
-            totalViews = resultMap.getOrDefault("totalViews", 0L);
-            totalDownloads = resultMap.getOrDefault("totalDownloads", 0L);
-        }
-
-        return new StatSummaryDto(totalDatasets, totalViews, totalDownloads);
+    Map<String, Object> resultMap = results.getUniqueMappedResult();
+    if (resultMap != null) {
+        Number views = (Number) resultMap.getOrDefault("totalViews", 0);
+        Number dls   = (Number) resultMap.getOrDefault("totalDownloads", 0);
+        totalViews = views == null ? 0L : views.longValue();
+        totalDownloads = dls == null ? 0L : dls.longValue();
     }
 
-    private Dataset findDatasetById(String id) {
-        return datasetRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Dataset not found with id: " + id));
-    }
+    return new StatSummaryDto(totalDatasets, totalViews, totalDownloads);
+}
 
     @Override
     public List<String> getAllCategories() {
@@ -141,6 +138,11 @@ public class DatasetServiceImpl implements DatasetService {
     public Page<DatasetDto> getDatasetsByCategory(String category, Pageable pageable) {
         Page<Dataset> page = datasetRepository.findByCategoryIgnoreCase(category, pageable);
         return page.map(datasetMapper::toDto);
+    }
+
+    private Dataset findDatasetById(String id) {
+        return datasetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Dataset not found with id: " + id));
     }
 
 }

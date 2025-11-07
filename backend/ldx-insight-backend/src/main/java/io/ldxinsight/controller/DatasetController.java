@@ -15,7 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; // <-- Import
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -77,18 +76,16 @@ public class DatasetController {
     }
 
 
-    @Operation(summary = "Tạo một Bộ dữ liệu mới (Yêu cầu xác thực)")
+    @Operation(summary = "Tạo một Bộ dữ liệu mới")
     @ApiResponse(responseCode = "201", description = "Tạo thành công")
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<DatasetDto> createDataset(@Valid @RequestBody CreateDatasetRequest request) {
         DatasetDto createdDataset = datasetService.createDataset(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdDataset);
     }
 
-    @Operation(summary = "Cập nhật một Bộ dữ liệu (Yêu cầu xác thực)")
+    @Operation(summary = "Cập nhật một Bộ dữ liệu")
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<DatasetDto> updateDataset(
             @PathVariable String id,
             @Valid @RequestBody CreateDatasetRequest request) {
@@ -96,10 +93,9 @@ public class DatasetController {
         return ResponseEntity.ok(updatedDataset);
     }
 
-    @Operation(summary = "Xóa một Bộ dữ liệu (Yêu cầu xác thực)")
+    @Operation(summary = "Xóa một Bộ dữ liệu")
     @ApiResponse(responseCode = "204", description = "Xóa thành công")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<Void> deleteDataset(@PathVariable String id) {
         datasetService.deleteDataset(id);
         return ResponseEntity.noContent().build();
