@@ -27,4 +27,5 @@ public interface DatasetService {
     List<CategoryStatisDTO> getCategoryStats();
     List<DatasetDto> getTopViewedDatasets(int limit);
     List<DatasetDto> getTopDownloadedDatasets(int limit);
+    String getDataUrl(String id);
 }
