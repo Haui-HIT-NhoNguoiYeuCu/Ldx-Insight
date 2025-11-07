@@ -8,7 +8,7 @@ Giải pháp nguồn mở nhằm thu thập, chuẩn hóa và phân tích dữ l
 
 ## 1. Tổng quan
 
-- **Crawler đa nguồn:** Đồng Tháp, TP.HCM (CKAN), Đà Nẵng (CongDuLieu).
+- **Crawler đa nguồn:** Đồng Tháp, TP.HCM (CKAN), Đà Nẵng (CongDuLieu), Thanh Hóa.
 - **Chuẩn hóa & phân loại:** tự động gắn nhãn định dạng, chuyển CSV/XLSX thành JSON records.
 - **Lên lịch dạng agent:** orchestrator điều phối từng connector, hỗ trợ cron bằng APScheduler.
 - **ETL vào MongoDB:** nạp metadata, resource và bản ghi chuẩn hóa lên Mongo Atlas.
@@ -108,7 +108,7 @@ Tất cả đều là nguồn mở.
 
 ## 10. Roadmap
 
-- Giải captcha/API key để tải dữ liệu thô Đà Nẵng.
+- Giải captcha/API key để tải dữ liệu thô
 - Crawl incremental theo `updated_time`.
 - Sinh DCAT/JSON-LD, xuất bản endpoint Linked Open Data.
 - Bổ sung data quality check (Great Expectations).

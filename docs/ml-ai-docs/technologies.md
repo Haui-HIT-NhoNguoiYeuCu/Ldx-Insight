@@ -36,5 +36,4 @@ title: Công nghệ sử dụng (ML/AI & Crawler)
 ## DevOps & Triển khai
 
 - Chạy độc lập bằng virtualenv/conda.
-- Systemd/cron cho lịch chạy sản xuất.
-- (Tùy chọn) Docker hóa pipeline để dễ triển khai lên EC2/K8s.
+- Airflow để lập lịch hàng ngày, xử lý dữ liệu và huấn luyện mô hình

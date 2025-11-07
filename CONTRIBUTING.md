@@ -19,6 +19,7 @@ Tài liệu này là một hướng dẫn giúp bạn tham gia vào dự án m�
   - [NOTICE & Attribution](#notice--attribution)
   - [Yêu cầu theo Apache-20 mục-4b](#yêu-cầu-theo-apache-20-mục-4b)
   - [Phụ thuộc bên thứ ba](#phụ-thuộc-bên-thứ-ba)
+- [Script Python tự động chèn header](#script-python-tự-động-chèn-header)
 
 ## Cách thức đóng góp
 
@@ -30,7 +31,7 @@ Nếu bạn tìm thấy một lỗi, vui lòng kiểm tra xem lỗi đó đã đ
 
 Nếu chưa, hãy tạo một issue mới với các thông tin sau:
 
-1. **Tiêu đề rõ ràng:** Mô tả ngắn gọn về lỗi.  
+1. **Tiêu đề rõ ràng:** Mô tả ngắn gọn về lỗi.
 2. **Mô tả chi tiết:**
    - Các bước để tái hiện lại lỗi (steps to reproduce).
    - Kết quả bạn mong đợi.
@@ -46,7 +47,7 @@ Hãy tạo một issue mới trong [mục Issues](https://github.com/Haui-HIT-Nh
 
 Nếu bạn muốn đóng góp mã nguồn, đây là quy trình chuẩn:
 
-1. **Fork** kho chứa (repository) này về tài khoản GitHub của bạn.  
+1. **Fork** kho chứa (repository) này về tài khoản GitHub của bạn.
 2. **Clone** kho chứa bạn đã fork về máy cá nhân:
    ```bash
    git clone https://github.com/Haui-HIT-NhoNguoiYeuCu/Ldx-Insight.git
@@ -91,6 +92,7 @@ Vui lòng thêm header ở đầu **mỗi file mã nguồn** mới (hoặc đả
 **Năm:** 2025 **Chủ sở hữu:** Haui.HIT - H2K
 
 - **Java/Kotlin**
+
   ```java
   /*
    * Copyright 2025 Haui.HIT - H2K
@@ -110,6 +112,7 @@ Vui lòng thêm header ở đầu **mỗi file mã nguồn** mới (hoặc đả
   ```
 
 - **TypeScript/JavaScript**
+
   ```ts
   /**
    * Copyright 2025 Haui.HIT - H2K
@@ -122,7 +125,18 @@ Vui lòng thêm header ở đầu **mỗi file mã nguồn** mới (hoặc đả
    */
   ```
 
+- **CSS/SCSS**
+
+  ```css
+  /*!
+   * Copyright 2025 Haui.HIT - H2K
+   * Licensed under the Apache License, Version 2.0
+   * http://www.apache.org/licenses/LICENSE-2.0
+   */
+  ```
+
 - **XML/HTML**
+
   ```xml
   <!--
     Copyright 2025 Haui.HIT - H2K
@@ -132,10 +146,20 @@ Vui lòng thêm header ở đầu **mỗi file mã nguồn** mới (hoặc đả
   ```
 
 - **YAML**
+
   ```yaml
   # Copyright 2025 Haui.HIT - H2K
   # Licensed under the Apache License, Version 2.0
   # http://www.apache.org/licenses/LICENSE-2.0
+  ```
+
+- **Markdown/MDX** (dùng comment HTML ở đầu file)
+  ```md
+  <!--
+    Copyright 2025 Haui.HIT - H2K
+    Licensed under the Apache License, Version 2.0
+    http://www.apache.org/licenses/LICENSE-2.0
+  -->
   ```
 
 > **Không chèn header** vào định dạng **không hỗ trợ comment** như JSON, CSV, ảnh, binary. Chỉ cần `LICENSE/NOTICE` ở gốc.
@@ -170,10 +194,26 @@ Nếu bạn **sửa đổi file**, hãy đảm bảo file đó có **thông báo
 
 ### Phụ thuộc bên thứ ba
 
-- Chỉ thêm thư viện/phần mềm có giấy phép **tương thích** (Apache-2.0, MIT, BSD, v.v.).  
-- Nếu giấy phép yêu cầu attribution/NOTICE, hãy cập nhật `NOTICE`.  
+- Chỉ thêm thư viện/phần mềm có giấy phép **tương thích** (Apache-2.0, MIT, BSD, v.v.).
+- Nếu giấy phép yêu cầu attribution/NOTICE, hãy cập nhật `NOTICE`.
 - Không đưa mã có giấy phép **không tương thích** (ví dụ GPLv3) vào repo trừ khi đã thảo luận và đồng ý công khai phạm vi, rủi ro.
 
 ---
 
-Cảm ơn bạn đã đóng góp cho Ldx-Insight!
+## Script Python tự động chèn header
+
+Chúng tôi cung cấp script **`tools/add_license_headers.py`** để tự động chèn/đồng bộ header vào các file nguồn.
+
+**Cách chạy:**
+
+```bash
+python tools/add_license_headers.py   --root .   --year 2025   --owner "Haui.HIT - H2K"   --spdx
+```
+
+**Mặc định script sẽ:**
+
+- Chèn header cho: `.java, .kt, .ts, .tsx, .js, .jsx, .css, .scss, .xml, .html, .yml, .yaml, .md, .mdx, .sh`
+- Bỏ qua: `node_modules`, `build`, `dist`, `.git`, `target`, `out`, `*.min.css`, `*.min.js`
+- Không đụng đến: `json`, `csv`, ảnh, binary.
+
+Xem mã nguồn script trong thư mục `tools/` để tuỳ chỉnh pattern mở rộng hoặc nội dung header.

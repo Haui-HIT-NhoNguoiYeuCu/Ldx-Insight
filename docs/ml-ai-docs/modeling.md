@@ -1,107 +1,103 @@
----
-sidebar_position: 5
-title: Bài toán mô hình & công thức huấn luyện
----
-
 # Bài toán mô hình & công thức huấn luyện
 
-Tài liệu này mô tả cách đặc tả bài toán, lựa chọn mô hình, hàm mất mát, chỉ số đánh giá và pipeline huấn luyện để dự báo/chẩn đoán **chỉ số chuyển đổi số (CĐS)** theo địa phương và theo thời gian.
+Tài liệu này mô tả kiến trúc ML của Ldx‑Insight để dự báo 3 trụ cột **Chính quyền số (CQS)**, **Kinh tế số (KTS)**, **Xã hội số (XHS)** và chỉ số tổng hợp **DTI**.
 
-## 1) Đặc tả bài toán
+$$DTI = 0.35 \cdot CQS + 0.35 \cdot KTS + 0.30 \cdot XHS$$
 
-- Kiểu bài toán: Hồi quy (Regression) trên dữ liệu bảng (tabular) và/hoặc chuỗi thời gian (time series).
-- Đầu vào (đặc trưng X):
-  - x1: Số dịch vụ công trực tuyến (DVCTT) mức độ 3/4 theo địa phương.
-  - x2: Tỷ lệ dân số dùng Internet/băng rộng cố định.
-  - x3: Số lượng bộ dữ liệu mở, mức độ cập nhật (tần suất/thời gian gần nhất).
-  - x4: Lượt truy cập/tải dữ liệu mở, mức độ quan tâm chủ đề.
-  - x5: Các chỉ báo KT-XH liên quan (nếu có, chuẩn hóa theo đầu người).
-- Đầu ra (mục tiêu y): Điểm tổng hợp CĐS (hoặc một chỉ số thành phần) theo địa phương, theo kỳ t (tháng/quý/năm).
+Pipeline bao trùm từ Data → Airflow → MongoDB → API → ML → Dashboard.
 
-## 2) Tiền xử lý & Chuẩn hóa dữ liệu
+## 1. Đặc tả bài toán
 
-- Chuẩn hóa giá trị thiếu: median imputation hoặc KNN imputer.
-- Chuẩn hóa thang đo: StandardScaler (z-score) hoặc MinMaxScaler nếu dùng mô hình nhạy cảm thang đo.
-- Tạo đặc trưng thời gian: lag features y(t−1), y(t−2), rolling mean/var.
-- One-hot cho biến phân loại (nếu có).
+- **Bản chất**: **multi-output regression** trên dữ liệu bảng `province × year`
+- **Đầu vào**: 22 feature thu thập từ dữ liệu mở, thống kê hành chính, TMĐT, kỹ năng số (xem Phụ lục)
+- **Đầu ra**: `CQS, KTS, XHS ∈ [0,1]`. DTI được tính theo công thức cố định sau khi dự báo 3 trụ cột
 
-## 3) Lựa chọn mô hình
+## 2. Tiền xử lý
 
-- Hồi quy tabular: RandomForestRegressor / XGBoostRegressor (mạnh với phi tuyến, ít yêu cầu chuẩn hóa thang đo).
-- Chuỗi thời gian: ARIMA/SARIMA cho tuyến tính; Prophet cho xu hướng/mùa vụ; LSTM (roadmap) khi dữ liệu đủ dài.
+- `generate_features.py` (Airflow `dag_build_features`) sinh dữ liệu giả (fake) cho 4 tỉnh (Đà Nẵng, TP.HCM, Thanh Hóa, Đồng Tháp) giai đoạn 2022‑2024. Các trường tỷ lệ (ratio) được clamp về [0,1], các trường đếm > 0
+- Khi có dữ liệu thật chỉ cần thay module generate bằng crawler/ETL; schema giữ nguyên
+- Trước khi huấn luyện (train): chuẩn hóa các trường đếm bằng cách chia cho max, xử lý thiếu bằng median imputation
 
-## 4) Hàm mất mát & tối ưu
+## 3. Mô hình
 
-- Hồi quy: tối thiểu hóa sai số tuyệt đối trung bình (MAE) hoặc bình phương trung bình (MSE).
+| Trụ cột | Model |
+|---------|-------|
+| CQS | RandomForestRegressor |
+| KTS | RandomForestRegressor |
+| XHS | RandomForestRegressor |
 
-Công thức:
+## 4. Hàm mất mát & đánh giá
 
-```
-MSE = (1/N) * Σ_{i=1..N} (ŷ_i - y_i)^2
-MAE = (1/N) * Σ_{i=1..N} |ŷ_i - y_i|
-R2  = 1 - [Σ (y_i - ŷ_i)²] / [Σ (y_i - ȳ)²]
-```
+**MAE (Mean Absolute Error):**
+$$\text{MAE} = \frac{1}{N} \sum | \hat{y} - y |$$
 
-Trong đánh giá báo cáo, ưu tiên MAE (dễ diễn giải theo “điểm” chênh lệch) và bổ sung R2 để đo độ phù hợp.
+**R² (R-squared):**
+$$R^2 = 1 - \frac{\sum (y - \hat{y})^2}{\sum (y - \bar{y})^2}$$
 
-## 5) Chiến lược đánh giá
+- Đánh giá từng trụ cột trên tập test (năm 2024)
+- DTI suy ra từ 3 trụ cột: `DTI_pred = 0.35*CQS_pred + 0.35*KTS_pred + 0.30*XHS_pred`, báo cáo thêm MAE
 
-- K-fold cross-validation (k=5) cho tabular khi dữ liệu không có phụ thuộc thời gian mạnh.
-- TimeSeriesSplit cho chuỗi thời gian (train trên quá khứ, test trên tương lai).
-- Báo cáo: MAE, RMSE, R² theo fold/split; biểu đồ residuals và actual vs. predicted.
-
-## 6) Pipeline huấn luyện (pseudo)
+## 5. Pseudo-code huấn luyện 3 trụ cột
 
 ```python
-# 1) Load & join dữ liệu chuẩn hóa từ normalized/ hoặc MongoDB
-X, y = load_features_targets()
+df = fetch_features()
+df = compute_targets(df)
 
-# 2) Split / CV
-from sklearn.model_selection import TimeSeriesSplit
-cv = TimeSeriesSplit(n_splits=5)  # hoặc KFold
+X_train = df[df.year < 2024][FEATURE_COLS]
+X_test  = df[df.year == 2024][FEATURE_COLS]
 
-# 3) Model
-from sklearn.ensemble import RandomForestRegressor
-model = RandomForestRegressor(n_estimators=400, max_depth=None, random_state=42)
+models = {}
+for pillar in ["CQS", "KTS", "XHS"]:
+  y_train = df[df.year < 2024][pillar]
+  y_test  = df[df.year == 2024][pillar]
+  
+  model = RandomForestRegressor(n_estimators=500, max_depth=4, random_state=42)
+  model.fit(X_train, y_train)
+  
+  y_pred = np.clip(model.predict(X_test), 0, 1)
+  mae = mean_absolute_error(y_test, y_pred)
+  print(pillar, "MAE=", mae)
+  
+  save_model(model, f"rf_{pillar.lower()}", {"mae": mae}, [2022, 2023])
+  models[pillar] = model
 
-# 4) Train & evaluate
-from sklearn.metrics import mean_absolute_error, r2_score
-mae_scores, r2_scores = [], []
-for train_idx, test_idx in cv.split(X):
-    X_tr, X_te = X.iloc[train_idx], X.iloc[test_idx]
-    y_tr, y_te = y.iloc[train_idx], y.iloc[test_idx]
-    model.fit(X_tr, y_tr)
-    y_pred = model.predict(X_te)
-    mae_scores.append(mean_absolute_error(y_te, y_pred))
-    r2_scores.append(r2_score(y_te, y_pred))
+# Đánh giá DTI tổng hợp
+cqs = models["CQS"].predict(X_test)
+kts = models["KTS"].predict(X_test)
+xhs = models["XHS"].predict(X_test)
+dti_pred = 0.35*cqs + 0.35*kts + 0.30*xhs
 
-print("MAE(mean)", sum(mae_scores)/len(mae_scores))
-print("R2(mean)", sum(r2_scores)/len(r2_scores))
-
-# 5) Fit toàn bộ & lưu mô hình (serving)
-model.fit(X, y)
-import joblib; joblib.dump(model, "model_cds_rf.joblib")
+print("DTI MAE=", mean_absolute_error(df[df.year == 2024]["DTI_total"], dti_pred))
 ```
 
-## 7) Lựa chọn đặc trưng (feature importance)
+## 6. API phục vụ
 
-- Với RF/XGBoost: dùng `feature_importances_` để xếp hạng đặc trưng.
-- Với ARIMA: kiểm tra ACF/PACF và độ dừng (ADF test).
-- Loại bỏ đặc trưng ít đóng góp, tránh overfitting, giảm độ phức tạp.
+- GET `/api/features`, `/api/features/all`: Airflow/ML đọc dữ liệu train từ Mongo
+- POST `/api/predictions/batch {"year": 2025}`: Server load model mới nhất, dự báo batch, ghi vào collection predictions
+- POST `/api/simulate {province, year, adjustments}`: Override feature, trả về `{cqs_pred, kts_pred, xhs_pred, dti_pred}`
+- GET `/api/dx/dashboard`: Trả dữ liệu leaderboard + phân bố high/medium/low cho DX-Predictor
 
-## 8) Triển khai mô hình (serving)
+## 7. Airflow DAGs
 
-- Cách 1: Tạo **FastAPI/Flask** service nhận JSON và trả dự báo (endpoint `/api/v1/ml/diagnosis`).
-- Cách 2: Nhúng nội suy trong Backend Spring Boot (gọi Python qua gRPC/HTTP hoặc dùng mô hình đã chuyển ONNX – roadmap).
+- `dag_build_features`: Tạo CSV/JSON + upsert vào Mongo
+- `dag_train_pillars`: Huấn luyện lại mô hình, cập nhật registry (Mongo hoặc file local)
+- `dag_predict_batch`: Dự báo định kỳ cho năm hiện tại, cấp dữ liệu cho dashboard
 
-## 9) Khuyến nghị dữ liệu tối thiểu
+## 8. Khuyến nghị dữ liệu
 
-- Ít nhất 24–36 kỳ quan sát theo địa phương (theo tháng) để mô hình time series ổn định.
-- Đảm bảo đồng bộ hóa thời điểm các biến đầu vào (cùng kỳ).
-- Mỗi đặc trưng ≥ 80% giá trị hợp lệ; nếu thiếu nhiều, áp dụng kỹ thuật suy diễn phù hợp.
+- Cần ít nhất 3 năm dữ liệu/tỉnh, tối thiểu 80% giá trị hợp lệ trên mỗi feature
+- Khi chuyển sang dữ liệu theo quý/tháng → dùng TimeSeriesSplit
 
-## 10) Lộ trình nâng cao
+## 9. Lộ trình nâng cao
 
-- Thử nghiệm **LightGBM/CatBoost** cho tabular có tương tác phi tuyến mạnh.
-- **Multitask learning**: dự báo đồng thời nhiều chỉ số CĐS thành phần.
-- **Explainability**: SHAP để giải thích đóng góp đặc trưng theo từng dự báo.
+- Thử nghiệm LightGBM/CatBoost, Multitask learning
+- Tích hợp SHAP explainability  
+- Near real-time streaming với Kafka/Airflow
+
+## Phụ lục – Feature theo nhóm trụ cột
+
+**CQS**: datasets_total, open_format_ratio, has_api_ratio, online_public_services_ratio, metadata_completeness_ratio, open_license_ratio, egov_datasets_share, updated_12m_ratio
+
+**KTS**: biz_open_data_ratio, ecommerce_index_proxy, open_finance_datasets_ratio, e_payment_usage_ratio, innovation_datasets_share, data_reuse_ratio, private_sector_datasets
+
+**XHS**: digital_literacy_rate, education_open_data_ratio, health_open_data_ratio, telehealth_usage_ratio, citizen_feedback_ratio, internet_access_ratio, mobile_penetration_ratio
