@@ -1,5 +1,7 @@
 export const useApi = () => {
   const { $http } = useNuxtApp();
+  const config = useRuntimeConfig();
+  const API_BASE = config.public.apiBase;
 
   return {
     auth: {
@@ -20,7 +22,13 @@ export const useApi = () => {
     },
 
     dataset: {
-      list: () => $http<Dataset[]>('/datasets'),
+      category: () => {
+        return $http<string[]>(`${API_BASE}/datasets/categories`);
+      },
+      list: (params?: DatasetRequestParams) =>
+        $http<DatasetResponse>(`${API_BASE}/datasets`, {
+          query: params,
+        }),
       detail: (id: string | number) => $http<Dataset>(`/datasets/${id}`),
     },
   };

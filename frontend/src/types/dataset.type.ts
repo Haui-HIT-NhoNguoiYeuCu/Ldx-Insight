@@ -1,4 +1,3 @@
-// types/dataset.ts
 export type Dataset = {
   id: number;
   name: string;
@@ -14,4 +13,22 @@ export type Dataset = {
   views: number;
   updated: string; // ISO date
   format: string; //VD: "CSV, JSON"
+};
+
+export type DatasetRequestParams = {
+  q?: string;
+  category?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+};
+
+export type DatasetResponse = {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  content: any[];
+  first: boolean;
+  last: boolean;
 };

@@ -1,22 +1,34 @@
 <script setup lang="ts">
-// Các composable của Nuxt được auto-import, bạn có thể giữ nguyên như dưới
 const appConfig = useAppConfig();
 useSeoMeta({ titleTemplate: appConfig.title });
 definePageMeta({ layout: 'default' });
 
-const api = useApi();
-const { data, pending, error, execute } = await useAsyncData(
-  'users',
-  () => api.user.getUsers(),
-  { immediate: false }
-);
+const router = useRouter();
+const q = ref('');
+const filters = [
+  {
+    title: 'Tất cả',
+    category: '',
+  },
+  { title: 'Văn hoá du lịch', category: 'Văn hoá du lịch' },
+  { title: 'Giáo dục', category: 'Giáo dục' },
+  { title: 'Kinh tế', category: 'Kinh tế' },
+];
 
-onMounted(() => {
-  if (!data.value) execute();
-});
+const onSearch = () => {
+  if (!q.value) return;
+  router.push({
+    path: '/data',
+    query: { q: q.value },
+  });
+};
 
-const searchQuery = ref('');
-const filters = ['All Categories', 'Recent', 'Popular', 'Most Downloaded'];
+const navigateToCategory = (category: string) => {
+  router.push({
+    path: '/data',
+    query: { category: category },
+  });
+};
 </script>
 
 <template>
@@ -39,14 +51,18 @@ const filters = ['All Categories', 'Recent', 'Popular', 'Most Downloaded'];
               class="absolute top-3.5 left-4 h-5 w-5 opacity-50"
             />
             <input
-              v-model="searchQuery"
+              v-model="q"
               type="text"
-              placeholder="Search datasets..."
+              placeholder="Tìm kiếm dữ liệu..."
               class="bg-primary-foreground text-foreground placeholder-muted-foreground focus:ring-accent w-full rounded-3xl border-2 py-3 pr-4 pl-12 focus:ring-1 focus:outline-none"
+              @keydown.enter="onSearch"
             />
           </div>
-          <UButton class="cursor-pointer rounded-3xl px-8 text-base">
-            Search
+          <UButton
+            class="cursor-pointer rounded-3xl px-8 text-base"
+            @click="onSearch"
+          >
+            Tìm kiếm
           </UButton>
         </div>
       </div>
@@ -54,12 +70,13 @@ const filters = ['All Categories', 'Recent', 'Popular', 'Most Downloaded'];
       <div class="flex flex-wrap justify-center gap-3">
         <UButton
           v-for="filter in filters"
-          :key="filter"
+          :key="filter.category"
           color="neutral"
           variant="outline"
           class="hover:bg-primary/30 cursor-pointer rounded-3xl bg-transparent px-4 text-white"
+          @click="navigateToCategory(filter.category)"
         >
-          {{ filter }}
+          {{ filter.title }}
         </UButton>
       </div>
     </div>
