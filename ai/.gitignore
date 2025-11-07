@@ -3,3 +3,8 @@ src/openhub_crawler/portals/__pycache__
 storage
 
 logs
+
+
+src/ml-dti/__pycache__
+src/ml-dti/generate_synthetic_dti_data.py
+src/ml-dti/artifacts/metadata.json
