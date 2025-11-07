@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -88,17 +89,32 @@ public class DatasetController {
 
     @Operation(summary = "Lấy download URL (JSON) và ghi nhận 1 lượt tải (tăng download count)")
     @GetMapping("/{id}/download")
-    public ResponseEntity<Map<String, String>> downloadAndIncrement(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> downloadAndIncrement(
+            @PathVariable String id,
+            HttpServletRequest request) {
         // Service trả về PATH JSON nội bộ, vd: /api/v1/datasets/{id}/download.json
         String jsonPath = datasetService.getDownloadUrlAndIncrement(id);
 
-        // Build absolute URL KHÔNG phụ thuộc HttpServletRequest
-        String absoluteJsonUrl = ServletUriComponentsBuilder
-                .fromCurrentContextPath()
-                .path(jsonPath)
-                .build()
-                .toUriString();
+        // Build absolute URL từ request để hoạt động đúng với reverse proxy/load balancer
+        // Sử dụng fromRequestUri() để tự động xử lý X-Forwarded-* headers
+        String absoluteJsonUrl;
+        try {
+            absoluteJsonUrl = ServletUriComponentsBuilder
+                    .fromRequestUri(request)
+                    .replacePath(jsonPath)
+                    .build()
+                    .toUriString();
+        } catch (Exception e) {
+            // Fallback: build từ current context nếu fromRequestUri() fail
+            log.warn("Failed to build URL from request, using fallback: {}", e.getMessage());
+            absoluteJsonUrl = ServletUriComponentsBuilder
+                    .fromCurrentContextPath()
+                    .path(jsonPath)
+                    .build()
+                    .toUriString();
+        }
 
+        log.debug("Built download URL: {} for dataset: {}", absoluteJsonUrl, id);
         return ResponseEntity.ok(Map.of("downloadUrl", absoluteJsonUrl));
     }
 
@@ -315,7 +331,7 @@ public class DatasetController {
                 if (body.length == 0) {
                     throw new ResourceNotFoundException("Upstream content is empty");
                 }
-                
+
                 // Log warning nếu là HTML nhưng vẫn trả về
                 String head = new String(body, 0, Math.min(body.length, 400), StandardCharsets.UTF_8).toLowerCase();
                 if (head.contains("<html") || head.contains("<!doctype html")) {
