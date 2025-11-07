@@ -75,7 +75,7 @@ public class SecurityConfig {
             "http://localhost:*",
             "http://127.0.0.1:*",
             "https://haui-hit-h2k.site",
-            "https://www.haui-hit-h2k.site"
+            "https://www.haui-hit-h2k.site", "https://ldx-insight.vercel.app"
         ));
         
         cfg.setAllowCredentials(true); // Bật credentials để hỗ trợ cookie
