@@ -37,15 +37,18 @@ public class SecurityConfig {
                         
                         // 1. Cho phép Swagger
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+                        
+                        // =================== LỖI 403 LÀ DO THIẾU DÒNG NÀY ===================
                         // 2. Cho phép API Đăng ký / Đăng nhập / Đăng xuất
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        // =====================================================================
+
                         // 3. Cho phép các API CÔNG KHAI
+                        // (Tôi đã rút gọn 5 dòng datasets của bạn thành 3 dòng cho sạch)
                         .requestMatchers(HttpMethod.GET, "/api/v1/datasets/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets/{id}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets/category/{category}").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/datasets/{id}/view").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets/{id}/download").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/stats/**").permitAll() 
+                        
                         // 4. Tất cả các API còn lại đều phải xác thực
                         .anyRequest().authenticated()
                 )
@@ -59,7 +62,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
         
-        cfg.setAllowedOrigins(List.of("*"));
+        // ================== SỬA LỖI CORS (KHÔNG DÙNG "*") ==================
+        cfg.setAllowedOrigins(List.of(
+            "https://api.haui-hit-h2k.site/", 
+            "http://localhost:3000",
+            "http://localhost:5173"
+        ));
+        // ===================================================================
         
         cfg.setAllowCredentials(true);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
@@ -68,7 +77,7 @@ public class SecurityConfig {
         cfg.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
+        source.registerCorsConfiguration("/**", cfg); 
         return source;
     }
 }
