@@ -84,6 +84,15 @@ const config: Config = {
         sidebarPath: "./sidebarsInfrastructure.ts",
       },
     ],
+    [
+      "@docusaurus/plugin-content-docs",
+      {
+        id: "presentation",
+        path: "bai-thuyet-trinh",
+        routeBasePath: "presentation",
+        sidebarPath: "./sidebarsPresentation.ts",
+      },
+    ],
   ],
 
   themeConfig: {
@@ -122,6 +131,12 @@ const config: Config = {
           label: "Infrastructure",
           position: "left",
           activeBaseRegex: `/infrastructure/`,
+        },
+        {
+          to: "/presentation/slide-01",
+          label: "Presentation",
+          position: "left",
+          activeBaseRegex: `/presentation/`,
         },
         {
           href: "https://github.com/Haui-HIT-NhoNguoiYeuCu/Ldx-Insight.git",
