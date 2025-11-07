@@ -82,27 +82,26 @@ public class DatasetServiceImpl implements DatasetService {
 
     @Override
     public String getDownloadUrlAndIncrement(String id) {
+        // tăng downloadCount
         Query query = new Query(Criteria.where("_id").is(id));
         Update update = new Update().inc("downloadCount", 1);
 
         Dataset dataset = mongoTemplate.findAndModify(query, update, Dataset.class);
-
         if (dataset == null) {
             throw new ResourceNotFoundException("Dataset not found with id: " + id);
         }
 
+        // Optional: vẫn kiểm tra có dataUrl để đảm bảo dataset thực sự có dữ liệu để tải
         String dataUrl = dataset.getDataUrl();
         if (dataUrl == null || dataUrl.trim().isEmpty()) {
             throw new ResourceNotFoundException("Dataset does not have a download URL");
         }
 
-        String normalizedUrl = dataUrl.trim();
-        if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
-            throw new IllegalArgumentException("Invalid download URL: URL must start with http:// or https://");
-        }
-
-        return normalizedUrl;
+        // Trả về endpoint CSV trong hệ thống (controller sẽ stream CSV từ dataUrl)
+        // CHÚ Ý: chỉ trả về PATH, controller sẽ convert thành absolute URL.
+        return "/api/datasets/" + id + "/download.csv";
     }
+
 
     @Override
     public StatSummaryDto getStatsSummary() {
@@ -156,6 +155,16 @@ public class DatasetServiceImpl implements DatasetService {
         Pageable pageable = PageRequest.of(0, limit);
         Page<Dataset> topViewedPage = datasetRepository.findByOrderByViewCountDesc(pageable);
         return topViewedPage.map(datasetMapper::toDto).getContent();
+    }
+    @Override
+    public String getDataUrl(String id) {
+        Dataset dataset = datasetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Dataset not found with id: " + id));
+        String dataUrl = dataset.getDataUrl();
+        if (!org.springframework.util.StringUtils.hasText(dataUrl)) {
+            throw new ResourceNotFoundException("Dataset does not have a download URL");
+        }
+        return dataUrl.trim();
     }
 
     @Override

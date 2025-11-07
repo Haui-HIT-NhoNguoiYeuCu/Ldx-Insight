@@ -46,7 +46,9 @@ public class SecurityConfig {
 
                         // 3. Cho phép các API CÔNG KHAI (tất cả methods)
                         .requestMatchers("/api/v1/datasets/**").permitAll()
-                        .requestMatchers("/api/v1/stats/**").permitAll() 
+                        .requestMatchers("/api/v1/stats/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets/*/download.csv").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets/*/download").permitAll()
                         
                         // 4. Tất cả các API còn lại đều phải xác thực
                         .anyRequest().authenticated()
