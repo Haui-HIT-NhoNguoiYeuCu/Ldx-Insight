@@ -22,7 +22,9 @@ public class JwtCookieService {
         return ResponseCookie.from(jwtCookieName, jwt)
                 .httpOnly(true)     // <-- Quan trọng: Chống XSS
                 .secure(true)       // <-- Quan trọng: Chỉ gửi qua HTTPS ý)
-                .path("/")          // Cookie có hiệu lực trên toàn bộ domain
+                .path("/") 
+                .secure(true)             // Báo trình duyệt: Chỉ gửi cookie này qua HTTPS
+                .sameSite("None")         // Cookie có hiệu lực trên toàn bộ domain
                 .maxAge(JWT_EXPIRATION_SECONDS) // Thời gian sống (1 ngày)
                 .domain("haui-hit-h2k.site")
                 .build();
@@ -37,6 +39,8 @@ public class JwtCookieService {
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
+                .secure(true)
+                .sameSite("None")
                 .maxAge(0)
                 .domain("haui-hit-h2k.site")
                 .build();
