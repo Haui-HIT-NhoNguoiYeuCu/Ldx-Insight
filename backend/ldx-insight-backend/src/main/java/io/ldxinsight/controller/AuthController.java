@@ -28,7 +28,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtCookieService jwtCookieService;
 
-    @Operation(summary = "Đăng ký tài khoản mới (Admin)")
+    @Operation(summary = "Đăng ký tài khoản mới")
     @PostMapping("/register")
     @PreAuthorize("permitAll()")
     public ResponseEntity<AuthResponse> register(
