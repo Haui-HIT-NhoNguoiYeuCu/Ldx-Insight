@@ -17,7 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/datasets")
@@ -66,13 +67,13 @@ public class DatasetController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "Tải file và ghi nhận 1 lượt tải (tăng download count)")
+    @Operation(summary = "Lấy download URL và ghi nhận 1 lượt tải (tăng download count)")
     @GetMapping("/{id}/download")
-    public ResponseEntity<Void> downloadAndIncrement(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> downloadAndIncrement(@PathVariable String id) {
         String downloadUrl = datasetService.getDownloadUrlAndIncrement(id);
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(downloadUrl))
-                .build();
+        Map<String, String> response = new HashMap<>();
+        response.put("downloadUrl", downloadUrl);
+        return ResponseEntity.ok(response);
     }
 
 

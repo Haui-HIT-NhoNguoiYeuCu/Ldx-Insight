@@ -68,19 +68,25 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
         
-        // ================== SỬA LỖI CORS (KHÔNG DÙNG "*") ==================
-        // ⚠️ THAY THẾ BẰNG DOMAIN THỰC TẾ CỦA BẠN
-        cfg.setAllowedOrigins(List.of(
-            "https://your-production-frontend.com", 
-            "http://localhost:3000",
-            "http://localhost:5173"
+        // Cho phép tất cả localhost ports và production domains
+        cfg.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://haui-hit-h2k.site",
+            "https://www.haui-hit-h2k.site"
         ));
-        // ===================================================================
         
-        cfg.setAllowCredentials(true); // Cần thiết vì bạn dùng cookie
-        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        cfg.setAllowCredentials(true); // Bật credentials để hỗ trợ cookie
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
         cfg.setAllowedHeaders(List.of("*")); 
-        cfg.setExposedHeaders(List.of("Authorization", "Content-Disposition", "X-Total-Count"));
+        cfg.setExposedHeaders(List.of(
+            "Authorization", 
+            "Content-Disposition", 
+            "X-Total-Count",
+            "Set-Cookie",
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials"
+        ));
         cfg.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
