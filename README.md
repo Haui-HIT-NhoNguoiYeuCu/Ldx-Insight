@@ -8,7 +8,7 @@
 
 Bài dự thi **hạng mục Phần mềm nguồn mở 2025** với chủ đề _“Ứng dụng Dữ liệu mở Liên kết hỗ trợ chẩn đoán và đề xuất với mô hình học máy phục vụ Chuyển đổi số Địa phương”_.
 
-**Bài thuyết trình**: [![Slide](https://www.canva.com/design/DAG4DAw4bBE/fdKAbcXN9L0kxfnfnoa52g/edit?utm_content=DAG4DAw4bBE&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+**Bài thuyết trình**: [Xem slide trên Canva](https://www.canva.com/design/DAG4DAw4bBE/fdKAbcXN9L0kxfnfnoa52g/view?utm_content=DAG4DAw4bBE&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
 ---
 
